@@ -87,8 +87,10 @@ interface Aggregator {
 interface POSState {
   menuItems: MenuItem[];
   categories: string[];
+  subCategories: string[];
   activeOrders: OrderItem[];
   selectedCategory: string;
+  selectedSubCategory: string;
   selectedTable: string | null;
   selectedRoom: string | null;
   searchQuery: string;
@@ -121,12 +123,14 @@ interface POSStore extends POSState {
   fetchMenuItems: () => Promise<void>;
   fetchAggregatorMenu: (aggregator: string) => Promise<void>;
   fetchCategories: () => Promise<void>;
+  fetchSubCategories: () => void;
   fetchPaymentModes: () => Promise<void>;
   addToOrder: (item: OrderItem) => Promise<void>;
   removeFromOrder: (uniqueId: string) => Promise<void>;
   updateQuantity: (uniqueId: string, quantity: number) => Promise<void>;
   clearOrder: () => Promise<void>;
   setSelectedCategory: (category: string) => void;
+  setSelectedSubCategory: (subCategory: string) => void;
   setSearchQuery: (query: string) => void;
   setSelectedCustomer: (customer: Customer | null) => void;
   setSelectedTable: (table: string | null, room: string | null, doNotLoadOrder?: boolean) => void;
@@ -171,8 +175,10 @@ const calculateItemPrice = (item: OrderItem): number => {
 export const usePOSStore = create<POSStore>((set, get) => ({
   menuItems: [],
   categories: [],
+  subCategories: [],
   activeOrders: [],
   selectedCategory: '',
+  selectedSubCategory: '',
   selectedTable: null,
   selectedRoom: null,
   searchQuery: '',
@@ -304,9 +310,13 @@ export const usePOSStore = create<POSStore>((set, get) => ({
         description: item.description || '',
         special_dish: item.special_dish || 0,
         tax_rate: 0,
+        main_category: item.main_category || '',
+        sub_category: item.sub_category || '',
       }));
 
       set({ menuItems });
+      get().fetchCategories();
+      get().fetchSubCategories();
     } catch (error) {
       set({ error: 'Failed to load menu items' });
       console.error('Error loading menu items:', error);
@@ -345,14 +355,38 @@ export const usePOSStore = create<POSStore>((set, get) => ({
         return;
       }
 
-      const courses = await getMenuCourses();
-      const categoryNames = courses.map(course => course.name);
-      sessionStorage.setItem('menuCategories', JSON.stringify(categoryNames));
-      set({ categories: categoryNames });
+      // Get categories from menu items using the 'course' field (item_course)
+      const { menuItems } = get();
+      if (menuItems.length > 0) {
+        const categoryNames = [...new Set(
+          menuItems
+            .filter(item => item.main_category)
+            .map(item => item.main_category!) 
+        )];
+        sessionStorage.setItem('menuCategories', JSON.stringify(categoryNames));
+        set({ categories: categoryNames });
+      }
     } catch (error) {
       set({ error: 'Failed to load menu categories' });
       throw error;
     }
+  },
+
+  fetchSubCategories: () => {
+    const { menuItems, selectedCategory } = get();
+    if (!selectedCategory) {
+      set({ subCategories: [] });
+      return;
+    }
+
+    // Get sub-categories (item_category) from items that match the selected course
+    const subCategories = [...new Set(
+      menuItems
+        .filter(item => item.main_category === selectedCategory && item.sub_category)
+        .map(item => item.sub_category!)
+    )];
+    
+    set({ subCategories, selectedSubCategory: '' });
   },
 
   fetchPaymentModes: async () => {
@@ -443,7 +477,11 @@ export const usePOSStore = create<POSStore>((set, get) => ({
     }
   },
 
-  setSelectedCategory: (category) => set({ selectedCategory: category }),
+  setSelectedCategory: (category) => {
+    set({ selectedCategory: category });
+    get().fetchSubCategories();
+  },
+  setSelectedSubCategory: (subCategory) => set({ selectedSubCategory: subCategory }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedCustomer: (customer) => set({ selectedCustomer: customer }),
   setSelectedTable: (table: string | null, room: string | null, doNotLoadOrder: boolean = false) => {

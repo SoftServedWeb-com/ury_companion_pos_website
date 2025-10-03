@@ -10,6 +10,8 @@ interface MenuCardProps {
   item: string;
   onClick?: () => void;
   disabled?: boolean;
+  item_category?: string;
+  item_sub_category?: string;
 }
 
 const MenuCard: FC<MenuCardProps> = ({ 
@@ -18,9 +20,11 @@ const MenuCard: FC<MenuCardProps> = ({
   price, 
   item_image, 
   course, 
-  item, 
+  item,
+  item_category='',
+  item_sub_category='',
   onClick,
-  disabled 
+  disabled
 }) => {
   return (
     <div
@@ -64,6 +68,12 @@ const MenuCard: FC<MenuCardProps> = ({
           <h3 className="font-medium text-gray-900 text-sm leading-5 line-clamp-2" title={name}>
             {name}
           </h3>
+          <p className="text-xs text-gray-500 truncate" title={item_category}>
+            {item_category || ' '}
+          </p>
+          <p className="text-xs text-gray-500 truncate" title={item_sub_category}>
+            {item_sub_category || ' '}
+          </p>
         </div>
 
         {/* Course section - fixed height for 1 line */}
