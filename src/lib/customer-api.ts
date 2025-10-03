@@ -90,3 +90,16 @@ export async function searchCustomers(search: string, limit = 5) {
     throw error;
   }
 }
+
+export async function getDefaultCustomer() {
+  try {
+    const {message}: { message: { name: string, phone: string ,id: string} | null } = await call.get('ury.ury_pos.api.getDefaultCustomer'); // this getDefaultCustomer function exists in the URY Companion SSW App
+    if (!message) {
+      return null;
+    }
+    return message;
+  } catch (error) {
+    console.log(error instanceof Error ? error.message : error);
+    return null;
+  }
+}

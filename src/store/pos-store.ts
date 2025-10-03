@@ -4,7 +4,7 @@ import { storage } from '../lib/storage';
 import { getRestaurantMenu, getAggregatorMenu, MenuItem as APIMenuItem } from '../lib/menu-api';
 import { getCurrencyInfo, PosProfileCombined, getCombinedPosProfile } from '../lib/pos-profile-api';
 import { getMenuCourses } from '../lib/menu-course-api';
-import { getCustomerGroups, getCustomerTerritories } from '../lib/customer-api';
+import { getCustomerGroups, getCustomerTerritories, getDefaultCustomer } from '../lib/customer-api';
 import { DEFAULT_ORDER_TYPE, OrderType } from '../data/order-types';
 import { getTableOrder, TableOrder } from '../lib/order-api';
 import { getPaymentModes } from '../lib/payment-api';
@@ -158,6 +158,7 @@ interface POSStore extends POSState {
   resetOrderState: () => void;
   setSelectedAggregator: (aggregator: Aggregator | null) => void;
   setOrderComment: (comment: string) => void;
+  fetchDefaultCustomer: () => Promise<void>;
 }
 
 const generateUniqueId = (item: OrderItem): string => {
@@ -210,17 +211,19 @@ export const usePOSStore = create<POSStore>((set, get) => ({
     try {
       set({ isInitializing: true, error: null });
       
-      const [profileResult, menuResult, categoriesResult, paymentModesResult] = await Promise.allSettled([
+      const [profileResult, menuResult, categoriesResult, paymentModesResult, defaultCustomerResult] = await Promise.allSettled([
         get().fetchPosProfile(),
         get().fetchMenuItems(),
         get().fetchCategories(),
-        get().fetchPaymentModes()
+        get().fetchPaymentModes(),
+        get().fetchDefaultCustomer()
       ]);
 
       if (profileResult.status === 'rejected' || 
           menuResult.status === 'rejected' || 
           categoriesResult.status === 'rejected' ||
-          paymentModesResult.status === 'rejected') {
+          paymentModesResult.status === 'rejected' ||
+          defaultCustomerResult.status === 'rejected') {
         set({ 
           error: 'Failed to initialize app. Please refresh the page.',
           isInitializing: false 
@@ -579,6 +582,11 @@ export const usePOSStore = create<POSStore>((set, get) => ({
     sessionStorage.setItem('territories', JSON.stringify(names));
   },
 
+  fetchDefaultCustomer: async () => {
+    const customer = await getDefaultCustomer();
+    set({ selectedCustomer: customer });
+  },
+
   getCartTotals: (): CartTotals => {
     const items = get().activeOrders;
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -660,20 +668,24 @@ export const usePOSStore = create<POSStore>((set, get) => ({
           orderId: order.name,
         });
       } else {
+        // Preserve existing customer selection when no table order exists
+        const currentCustomer = get().selectedCustomer;
         set({ 
           tableOrder: null,
           activeOrders: [],
-          selectedCustomer: null,
+          selectedCustomer: currentCustomer,
           isUpdatingOrder: false,
           orderId: null,
         });
       }
     } catch (error) {
+      // Preserve existing customer selection when error occurs
+      const currentCustomer = get().selectedCustomer;
       set({ 
         error: 'Failed to load table order',
         tableOrder: null,
         activeOrders: [],
-        selectedCustomer: null,
+        selectedCustomer: currentCustomer,
         isUpdatingOrder: false,
         orderId: null,
       });
