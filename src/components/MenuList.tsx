@@ -120,7 +120,7 @@ const MenuList: React.FC<MenuListProps> = ({ onItemClick }) => {
                   onClick={() => setSubCategoriesCollapsed(!subCategoriesCollapsed)}
                 >
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Sub Categories {selectedSubCategory && `(${selectedSubCategory})`}
+                    Sub Categories {selectedSubCategory && `(${selectedSubCategory.split('-')[0]})`}
                   </h2>
                   {subCategoriesCollapsed ? (
                     <ChevronDown className="h-5 w-5 text-gray-500" />

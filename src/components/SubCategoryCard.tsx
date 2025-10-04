@@ -30,7 +30,7 @@ const SubCategoryCard: FC<SubCategoryCardProps> = ({
           "font-medium text-xs leading-4",
           isSelected ? "text-green-700" : "text-gray-900"
         )}>
-          {name}
+          {name.split('-')[0]}
         </h3>
       </div>
     </div>
