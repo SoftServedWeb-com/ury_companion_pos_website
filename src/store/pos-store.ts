@@ -712,10 +712,9 @@ export const usePOSStore = create<POSStore>((set, get) => ({
   },
 
   resetOrderState: () => {
-    const { fetchMenuItems } = get();
-    
+    const { fetchMenuItems, fetchDefaultCustomer } = get();
+        
     set({
-      selectedCustomer: null,
       selectedTable: null,
       selectedRoom: null,
       selectedAggregator: null,
@@ -729,7 +728,9 @@ export const usePOSStore = create<POSStore>((set, get) => ({
       selectedOrderType: DEFAULT_ORDER_TYPE,
       orderComment: '',
     });
-
+    
+    // Reset customer to default instead of null
+    fetchDefaultCustomer();
     fetchMenuItems();
   },
 
