@@ -118,6 +118,7 @@ const OrderPanel = () => {
         waiter: user.name,
         comments: orderComment || undefined
       };
+      console.log(orderData);
 
       await syncOrder(orderData);
       
