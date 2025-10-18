@@ -42,6 +42,7 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children }) 
   const keyboardRef = useRef<any>(null);
 
   const openKeyboard = (inputId: string, currentValue: string, onChange: (value: string) => void) => {
+    console.log('KeyboardContext: openKeyboard called with:', { inputId, currentValue });
     setActiveInput(inputId);
     setCurrentOnChange(() => onChange);
     setIsKeyboardOpen(true);
@@ -55,6 +56,7 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children }) 
   };
 
   const closeKeyboard = () => {
+    console.log('KeyboardContext: closeKeyboard called');
     setIsKeyboardOpen(false);
     setActiveInput(null);
     setCurrentOnChange(null);
@@ -77,6 +79,11 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children }) 
       closeKeyboard();
     }
   };
+
+  // Debug keyboard state changes
+  React.useEffect(() => {
+    console.log('KeyboardContext: isKeyboardOpen changed to:', isKeyboardOpen);
+  }, [isKeyboardOpen]);
 
   // Add click outside listener when keyboard is open
   React.useEffect(() => {

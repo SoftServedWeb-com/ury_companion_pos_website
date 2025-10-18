@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useKeyboard } from '../contexts/KeyboardContext';
@@ -18,7 +18,12 @@ export default function SearchBar({
   isVisible,
   disabled
 }: SearchBarProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { openKeyboard } = useKeyboard();
+
   const handleSearchFocus = () => {
+    console.log('Search input focused! Value:', value);
+    console.log('openKeyboard function:', openKeyboard);
     openKeyboard('search', value, onChange);
   };
 
@@ -66,6 +71,8 @@ export default function SearchBar({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onFocus={handleSearchFocus}
+            onMouseDown={() => console.log('Search input mouse down')}
+            onClick={() => console.log('Search input clicked')}
             disabled={disabled}
           />
           <button
