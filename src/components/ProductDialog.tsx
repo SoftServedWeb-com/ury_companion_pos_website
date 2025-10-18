@@ -125,6 +125,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
   const [selectedAddons, setSelectedAddons] = useState<Array<{ id: string; name: string; price: number }>>([]);
   const [quantity, setQuantity] = useState<string>(editMode ? initialQuantity?.toString() || '0' : '0');
   const [comments, setComments] = useState<string>(itemToReplace?.comment || existingCartItem?.comment || '');
+  const [customRate, setCustomRate] = useState<string>(itemToReplace?.customRate?.toString() || existingCartItem?.customRate?.toString() || '');
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const [addonItemCodes, setAddonItemCodes] = useState<string[]>([]);
@@ -166,6 +167,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
       if (existingCartItem) {
         setQuantity(existingCartItem.quantity.toString());
         setComments(existingCartItem.comment || '');
+        setCustomRate(existingCartItem.customRate?.toString() || '');
       } else {
         const cartQuantity = getItemQuantityFromCart(selectedItem);
         setQuantity(cartQuantity.toString());
@@ -204,7 +206,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
   if (!selectedItem) return null;
 
   // Always get price from menuItems for the main item
-  const basePrice = selectedItem?.price ? Number(selectedItem.price) : 0;
+  const basePrice = customRate ? Number(customRate) : (selectedItem?.price ? Number(selectedItem.price) : 0);
   const numericQuantity = quantity === '' ? 0 : parseInt(quantity, 10);
   const addonsTotal = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
   const total = (basePrice + addonsTotal) * numericQuantity;
@@ -219,6 +221,19 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
     const num = parseInt(value, 10);
     if (!isNaN(num) && num >= 0 && num <= 99) {
       setQuantity(num.toString());
+    }
+  };
+
+  const handleCustomRateChange = (value: string) => {
+    // Allow empty string or numbers
+    if (value === '') {
+      setCustomRate('');
+      return;
+    }
+
+    const num = parseFloat(value);
+    if (!isNaN(num) && num >= 0) {
+      setCustomRate(value);
     }
   };
 
@@ -252,7 +267,8 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
       ...selectedItem,
       quantity: numericQuantity,
       price: basePrice,
-      comment: comments
+      comment: comments,
+      customRate: customRate ? Number(customRate) : undefined
     };
     addToOrder(orderItem);
 
@@ -399,6 +415,30 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
               >
                 <Plus className="h-4 w-4" />
               </Button>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-3">Custom Price</h3>
+            <div className="space-y-2">
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder={`Default: ${formatCurrency(selectedItem?.price || 0)}`}
+                value={customRate}
+                onChange={(e) => handleCustomRateChange(e.target.value)}
+                onBlur={() => {
+                  // If empty on blur, clear custom rate
+                  if (customRate === '') {
+                    setCustomRate('');
+                  }
+                }}
+                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <p className="text-xs text-gray-500">
+                Leave empty to use default price ({formatCurrency(selectedItem?.price || 0)})
+              </p>
             </div>
           </div>
           {/* Variants Section  */}

@@ -42,7 +42,8 @@ const OrderPanel = () => {
   const [showCommentDialog, setShowCommentDialog] = useState(false);
 
   const calculateItemTotal = (item: typeof activeOrders[0]) => {
-    const basePrice = item.selectedVariant?.price || item.price;
+    // Use custom rate if available, otherwise use variant price or item price
+    const basePrice = item.customRate ?? (item.selectedVariant?.price || item.price);
     const addonsTotal = item.selectedAddons?.reduce((sum, addon) => sum + addon.price, 0) || 0;
     return (basePrice + addonsTotal) * item.quantity;
   };
@@ -99,7 +100,7 @@ const OrderPanel = () => {
         items: activeOrders.map(item => ({
           item: item.id,
           item_name: item.name,
-          rate: item.selectedVariant?.price || item.price,
+          rate: item.customRate ?? (item.selectedVariant?.price || item.price),
           qty: item.quantity,
           comment: item.comment || undefined
         })),

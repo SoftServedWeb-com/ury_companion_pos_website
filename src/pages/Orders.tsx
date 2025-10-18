@@ -148,6 +148,7 @@ export default function Orders() {
         description: item.description || '',
         special_dish: 0,
         tax_rate: 0,
+        customRate: item.custom_rate || undefined,
       }));
       for (const cartItem of items) {
         await posStore.addToOrder(cartItem);

@@ -51,6 +51,7 @@ export interface OrderItem extends MenuItem {
   selectedAddons?: { id: string; name: string; price: number }[];
   uniqueId?: string;
   comment?: string;
+  customRate?: number;
 }
 
 export interface PaymentMode {
@@ -168,7 +169,8 @@ const generateUniqueId = (item: OrderItem): string => {
 };
 
 const calculateItemPrice = (item: OrderItem): number => {
-  const basePrice = item.selectedVariant?.price || item.price;
+  // Use custom rate if available, otherwise use variant price or item price
+  const basePrice = item.customRate ?? (item.selectedVariant?.price || item.price);
   const addonsTotal = item.selectedAddons?.reduce((sum, addon) => sum + addon.price, 0) || 0;
   return basePrice + addonsTotal;
 };
