@@ -7,6 +7,7 @@ import AuthGuard from './components/AuthGuard';
 import POSOpeningProvider from './components/POSOpeningProvider';
 import ScreenSizeProvider from './components/ScreenSizeProvider';
 import { ToastProvider } from './components/ui/toast';
+import { KeyboardProvider } from './contexts/KeyboardContext';
 import { usePOSStore } from './store/pos-store';
 import { useEffect } from 'react';
 
@@ -22,22 +23,24 @@ function App() {
     <>
       <ToastProvider />
       <ScreenSizeProvider>
-        <AuthGuard>
-          <POSOpeningProvider>
-            <Router basename="/pos">
-              <div className="flex flex-col h-screen bg-gray-100 font-inter">
-                <Header />
-                <div className="flex-1 overflow-hidden">
-                  <Routes>
-                    <Route path="/" element={<POS/>} />
-                    <Route path="/orders" element={<Orders />} />
-                  </Routes>
+        <KeyboardProvider>
+          <AuthGuard>
+            <POSOpeningProvider>
+              <Router basename="/pos">
+                <div className="flex flex-col h-screen bg-gray-100 font-inter">
+                  <Header />
+                  <div className="flex-1 overflow-hidden">
+                    <Routes>
+                      <Route path="/" element={<POS/>} />
+                      <Route path="/orders" element={<Orders />} />
+                    </Routes>
+                  </div>
+                  <Footer />
                 </div>
-                <Footer />
-              </div>
-            </Router>
-          </POSOpeningProvider>
-        </AuthGuard>
+              </Router>
+            </POSOpeningProvider>
+          </AuthGuard>
+        </KeyboardProvider>
       </ScreenSizeProvider>
     </>
   );

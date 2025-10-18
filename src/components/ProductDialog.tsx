@@ -4,6 +4,7 @@ import { OrderItem, usePOSStore } from '../store/pos-store';
 import { cn, formatCurrency } from '../lib/utils';
 import { Button, Dialog, DialogContent, Input } from './ui';
 import { db } from '../lib/frappe-sdk';
+import { useKeyboard } from '../contexts/KeyboardContext';
 
 interface Variant {
   id: string;
@@ -57,29 +58,19 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
 
   // State for the full item doc (used for all dialog content)
   const [itemDoc, setItemDoc] = useState<any | null>(null);
-  const [isItemLoading, setIsItemLoading] = useState(false);
-  const [itemError, setItemError] = useState<string | null>(null);
 
   // Fetch Item doc when dialog opens or selectedItem changes
   useEffect(() => {
     if (!selectedItem) {
       setItemDoc(null);
-      setItemError(null);
-      setIsItemLoading(false);
       return;
     }
-    setIsItemLoading(true);
-    setItemError(null);
     db.getDoc('Item', selectedItem.item)
       .then((doc: any) => {
         setItemDoc(doc);
       })
       .catch(() => {
-        setItemError('Failed to fetch item details');
         setItemDoc(null);
-      })
-      .finally(() => {
-        setIsItemLoading(false);
       });
   }, [selectedItem]);
 
@@ -127,39 +118,8 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
   const [comments, setComments] = useState<string>(itemToReplace?.comment || existingCartItem?.comment || '');
   const [customRate, setCustomRate] = useState<string>(itemToReplace?.customRate?.toString() || existingCartItem?.customRate?.toString() || '');
   const dialogRef = useRef<HTMLDivElement>(null);
+  const { openKeyboard } = useKeyboard();
 
-  const [addonItemCodes, setAddonItemCodes] = useState<string[]>([]);
-  const [isAddonLoading, setIsAddonLoading] = useState(false);
-  const [addonError, setAddonError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!selectedItem) {
-      setAddonItemCodes([]);
-      setAddonError(null);
-      setIsAddonLoading(false);
-      return;
-    }
-    setIsAddonLoading(true);
-    setAddonError(null);
-    db.getDoc('Item', selectedItem.item)
-      .then((doc: any) => {
-        if (Array.isArray(doc.custom_pos_add_on_items)) {
-          const codes = doc.custom_pos_add_on_items
-            .map((entry: any) => entry.item)
-            .filter(Boolean);
-          setAddonItemCodes(codes);
-        } else {
-          setAddonItemCodes([]);
-        }
-      })
-      .catch((err: any) => {
-        setAddonError('Failed to fetch add-ons');
-        setAddonItemCodes([]);
-      })
-      .finally(() => {
-        setIsAddonLoading(false);
-      });
-  }, [selectedItem]);
 
   // Initialize quantity and comments from cart if not in edit mode
   useEffect(() => {
@@ -178,7 +138,12 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
   // Handle click outside to close dialog
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dialogRef.current && !dialogRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      // Don't close if clicking on keyboard or keyboard-related elements
+      if (dialogRef.current && 
+          !dialogRef.current.contains(target) && 
+          !target.closest('.virtual-keyboard-container') &&
+          !target.closest('.react-simple-keyboard')) {
         handleClose();
       }
     };
@@ -234,6 +199,27 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
     const num = parseFloat(value);
     if (!isNaN(num) && num >= 0) {
       setCustomRate(value);
+    }
+  };
+
+  const handleInputFocus = (inputType: 'comments' | 'customRate') => {
+    const currentValue = inputType === 'comments' ? comments : customRate;
+    const onChange = (value: string) => {
+      if (inputType === 'comments') {
+        setComments(value);
+      } else if (inputType === 'customRate') {
+        handleCustomRateChange(value);
+      }
+    };
+    openKeyboard(inputType, currentValue, onChange);
+  };
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>, inputType: 'comments' | 'customRate') => {
+    const value = event.target.value;
+    if (inputType === 'comments') {
+      setComments(value);
+    } else if (inputType === 'customRate') {
+      handleCustomRateChange(value);
     }
   };
 
@@ -377,7 +363,8 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
             <Input
               placeholder="Add any special instructions or notes for this item..."
               value={comments}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setComments(e.target.value)}
+              onChange={(e) => handleInputChange(e, 'comments')}
+              onFocus={() => handleInputFocus('comments')}
               className="resize-none"
             />
           </div>
@@ -427,7 +414,8 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
                 min="0"
                 placeholder={`Default: ${formatCurrency(selectedItem?.price || 0)}`}
                 value={customRate}
-                onChange={(e) => handleCustomRateChange(e.target.value)}
+                onChange={(e) => handleInputChange(e, 'customRate')}
+                onFocus={() => handleInputFocus('customRate')}
                 onBlur={() => {
                   // If empty on blur, clear custom rate
                   if (customRate === '') {
@@ -473,11 +461,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
         {/* Right Column - Add-ons and Order Button */}
         <div className="h-auto md:w-1/3 p-6 border-t md:border-t-0 md:border-l border-gray-200 overflow-y-auto flex flex-col">
           <div className="overflow-y-auto mb-6">
-            {isAddonLoading ? (
-              <div className="mb-6 flex items-center justify-center text-gray-500">Loading add-ons...</div>
-            ) : addonError ? (
-              <div className="flex items-center justify-center text-red-500">{addonError}</div>
-            ) : addonDetails.length > 0 ? (
+            {addonDetails.length > 0 ? (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3">Add-ons</h3>
                 <div className="space-y-2">

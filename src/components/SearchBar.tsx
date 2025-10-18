@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useKeyboard } from '../contexts/KeyboardContext';
 
 interface SearchBarProps {
   value: string;
@@ -17,7 +18,9 @@ export default function SearchBar({
   isVisible,
   disabled
 }: SearchBarProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const handleSearchFocus = () => {
+    openKeyboard('search', value, onChange);
+  };
 
   useEffect(() => {
     if (isVisible && inputRef.current) {
@@ -62,6 +65,7 @@ export default function SearchBar({
             )}
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onFocus={handleSearchFocus}
             disabled={disabled}
           />
           <button
