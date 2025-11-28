@@ -81,31 +81,9 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children }) 
     updateKeyboardValue(input);
   };
 
-  const handleClickOutside = (event: MouseEvent) => {
-    const target = event.target as HTMLElement;
-    // Check if click is outside the keyboard and not on any input that should keep keyboard open
-    // Also exclude the keyboard input field itself
-    if (isKeyboardOpen && 
-        !target.closest('.virtual-keyboard-container') && 
-        !target.closest('.keyboard-input-field') &&
-        !target.closest('input')) {
-      closeKeyboard();
-    }
-  };
-
   // Debug keyboard state changes
   React.useEffect(() => {
     console.log('KeyboardContext: isKeyboardOpen changed to:', isKeyboardOpen);
-  }, [isKeyboardOpen]);
-
-  // Add click outside listener when keyboard is open
-  React.useEffect(() => {
-    if (isKeyboardOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
   }, [isKeyboardOpen]);
 
   return (
@@ -126,11 +104,33 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children }) 
         <>
           <div 
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
-            onClick={closeKeyboard}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              closeKeyboard();
+            }}
+            onMouseDown={(e) => {
+              // Stop propagation at mousedown to prevent other dialogs from closing
+              e.stopPropagation();
+            }}
+            onMouseUp={(e) => {
+              // Also stop propagation on mouseup
+              e.stopPropagation();
+            }}
           />
           
           {/* Keyboard container with input field */}
-          <div className="fixed bottom-0 left-0 right-0 z-[9999] virtual-keyboard-container">
+          <div 
+            className="fixed bottom-0 left-0 right-0 z-[9999] virtual-keyboard-container"
+            onClick={(e) => {
+              // Prevent clicks on keyboard from bubbling to backdrop
+              e.stopPropagation();
+            }}
+            onMouseDown={(e) => {
+              // Prevent mousedown on keyboard from bubbling
+              e.stopPropagation();
+            }}
+          >
             <div className="bg-white border-t border-gray-200 shadow-2xl">
               {/* Input field above keyboard */}
               <div className="p-4 border-b border-gray-200 bg-white">
