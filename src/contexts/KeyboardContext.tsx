@@ -39,12 +39,14 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children }) 
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [activeInput, setActiveInput] = useState<string | null>(null);
   const [currentOnChange, setCurrentOnChange] = useState<((value: string) => void) | null>(null);
+  const [keyboardInputValue, setKeyboardInputValue] = useState<string>('');
   const keyboardRef = useRef<any>(null);
 
   const openKeyboard = (inputId: string, currentValue: string, onChange: (value: string) => void) => {
     console.log('KeyboardContext: openKeyboard called with:', { inputId, currentValue });
     setActiveInput(inputId);
     setCurrentOnChange(() => onChange);
+    setKeyboardInputValue(currentValue);
     setIsKeyboardOpen(true);
     
     // Set the current value in the keyboard
@@ -57,12 +59,19 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children }) 
 
   const closeKeyboard = () => {
     console.log('KeyboardContext: closeKeyboard called');
+    // Apply the final value to the original input field
+    if (currentOnChange && keyboardInputValue !== undefined) {
+      currentOnChange(keyboardInputValue);
+    }
     setIsKeyboardOpen(false);
     setActiveInput(null);
     setCurrentOnChange(null);
+    setKeyboardInputValue('');
   };
 
   const updateKeyboardValue = (value: string) => {
+    setKeyboardInputValue(value);
+    // Also update the original input in real-time for preview
     if (currentOnChange) {
       currentOnChange(value);
     }
@@ -75,7 +84,11 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children }) 
   const handleClickOutside = (event: MouseEvent) => {
     const target = event.target as HTMLElement;
     // Check if click is outside the keyboard and not on any input that should keep keyboard open
-    if (isKeyboardOpen && !target.closest('.virtual-keyboard-container') && !target.closest('input')) {
+    // Also exclude the keyboard input field itself
+    if (isKeyboardOpen && 
+        !target.closest('.virtual-keyboard-container') && 
+        !target.closest('.keyboard-input-field') &&
+        !target.closest('input')) {
       closeKeyboard();
     }
   };
@@ -108,25 +121,48 @@ export const KeyboardProvider: React.FC<KeyboardProviderProps> = ({ children }) 
     >
       {children}
       
-      {/* Absolutely positioned keyboard */}
+      {/* Backdrop overlay with blur and dark background */}
       {isKeyboardOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg virtual-keyboard-container">
-          <div className="p-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-600">Virtual Keyboard</span>
-              <button
-                onClick={closeKeyboard}
-                className="text-gray-400 hover:text-gray-600 text-lg font-bold"
-              >
-                ×
-              </button>
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+            onClick={closeKeyboard}
+          />
+          
+          {/* Keyboard container with input field */}
+          <div className="fixed bottom-0 left-0 right-0 z-[9999] virtual-keyboard-container">
+            <div className="bg-white border-t border-gray-200 shadow-2xl">
+              {/* Input field above keyboard */}
+              <div className="p-4 border-b border-gray-200 bg-white">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-medium text-gray-700">Enter text:</span>
+                  <button
+                    onClick={closeKeyboard}
+                    className="ml-auto text-gray-400 hover:text-gray-600 text-xl font-bold transition-colors"
+                    aria-label="Close keyboard"
+                  >
+                    ×
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={keyboardInputValue}
+                  readOnly
+                  className="keyboard-input-field w-full px-4 py-3 text-lg border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Type using the keyboard below..."
+                />
+              </div>
+              
+              {/* Keyboard */}
+              <div className="p-4 bg-gray-50">
+                <KeyboardWrapper 
+                  keyboardRef={keyboardRef} 
+                  onChange={handleKeyboardChange} 
+                />
+              </div>
             </div>
-            <KeyboardWrapper 
-              keyboardRef={keyboardRef} 
-              onChange={handleKeyboardChange} 
-            />
           </div>
-        </div>
+        </>
       )}
     </KeyboardContext.Provider>
   );
